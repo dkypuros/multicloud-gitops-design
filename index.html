@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Experimental sequence diagrams of the Red Hat SSO to MAS to Ask Red Hat / OpenShift Lightspeed flow in luis5tb/multicloud-gitops.">
+<title>SSO to MAS to OLS Sequence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;700&family=Red+Hat+Text:wght@400;500;600&family=Red+Hat+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~72ch) with wide diagram panels that scroll sideways on their own */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --fg: #1b1f27;
+  --muted: #5b6372;
+  --line: #dde1e8;
+  --accent: #c4161c;
+  --tokA: #1f5fae;
+  --tokB: #2e7d4f;
+  --chipA: #e4eefb;
+  --chipB: #e3f3ea;
+  --code-bg: #eef0f4;
+  --f-display: "Red Hat Display", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Red Hat Text", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "Red Hat Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151b; --surface: #1a1e26; --fg: #e6e9ef; --muted: #9aa3b2; --line: #2c323d;
+    --accent: #ff5a5f; --tokA: #7fb0ef; --tokB: #74c99a; --chipA: #1c2a3d; --chipB: #1a3126; --code-bg: #232833;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151b; --surface: #1a1e26; --fg: #e6e9ef; --muted: #9aa3b2; --line: #2c323d;
+  --accent: #ff5a5f; --tokA: #7fb0ef; --tokB: #74c99a; --chipA: #1c2a3d; --chipB: #1a3126; --code-bg: #232833;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 16px; line-height: 1.6;
+}
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 64px;
+  display: grid; gap: 40px;
+}
+.prose { max-width: 72ch; display: grid; gap: 14px; min-width: 0; }
+header { display: grid; gap: 10px; }
+.eyebrow { font-family: var(--f-mono); font-size: 12.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(28px, 4.2vw, 40px); line-height: 1.15; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 22px; margin: 0; text-wrap: balance; }
+h3 { font-family: var(--f-display); font-weight: 500; font-size: 17px; margin: 0; }
+p { margin: 0; }
+.lede { color: var(--muted); font-size: 17px; }
+code, .mono { font-family: var(--f-mono); font-size: .88em; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+a { color: var(--tokA); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.meta { font-family: var(--f-mono); font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.step .n { font-family: var(--f-mono); font-size: 13px; color: var(--accent); font-weight: 500; }
+.step p { font-size: 14.5px; color: var(--muted); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 12px; min-width: 0; }
+.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline; }
+.panel-head p { color: var(--muted); font-size: 14px; }
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.scroll pre.mermaid { margin: 0; background: transparent; }
+.detail { display: grid; gap: 16px; padding-top: 8px; border-top: 1px solid var(--line); min-width: 0; }
+.req { margin: 0; font-family: var(--f-mono); font-size: 13px; line-height: 1.55; background: var(--code-bg); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: pre; }
+.detail .scroll { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 13.5px; }
+.chip { font-family: var(--f-mono); font-size: 12.5px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.chip.a { background: var(--chipA); color: var(--tokA); }
+.chip.b { background: var(--chipB); color: var(--tokB); }
+.chip.n { background: var(--code-bg); color: var(--muted); }
+
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+th { font-family: var(--f-mono); font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+td code { font-size: 12.5px; }
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.tbl table { min-width: 640px; }
+
+ul.plain { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+ul.plain li::marker { color: var(--accent); }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 28px; }
+.two > * { min-width: 0; }
+footer { color: var(--muted); font-size: 13.5px; border-top: 1px solid var(--line); padding-top: 18px; }
+</style>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;-webkit-text-size-adjust:100%}
+img,svg{max-width:100%}
+[hidden]{display:none!important}
+.banner{font-size:14px;line-height:1.5;background:var(--code-bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px 14px}
+.banner a{color:var(--tokA)}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="prose">
+    <p class="banner"><strong>Experiment.</strong> This page is a personal attempt by David Kypuros to diagram the authentication and routing flow in Luis Tomas Bolivar's repo <a href="https://github.com/luis5tb/multicloud-gitops/tree/rca-praxis-ols-claude-a2a-bm">luis5tb/multicloud-gitops</a> (branch <code>rca-praxis-ols-claude-a2a-bm</code>). It is not official documentation. For the authoritative write-up, see <a href="https://github.com/luis5tb/multicloud-gitops/blob/rca-praxis-ols-claude-a2a-bm/agents/AUTHENTICATION.md">AUTHENTICATION.md</a>.</p>
+    <div class="eyebrow">multicloud-gitops · rca-praxis-ols-claude-a2a-bm</div>
+    <h1>Red Hat SSO → MAS → Ask Red Hat or OpenShift Lightspeed</h1>
+    <p class="lede">The first working end-to-end flow, traced from the code and config on Luis's branch. An external agent gets a Red Hat SSO token. MAS validates it and routes the question to Ask Red Hat, to OpenShift Lightspeed, or to both. On the OLS path, Keycloak exchanges the token for one that maps to an OpenShift group and gets real RBAC.</p>
+    <div class="meta">
+      <span>commit <a href="https://github.com/luis5tb/multicloud-gitops/commit/c6d8ffd406b0e8afe1041d2a9854cc2dc242eff4">c6d8ffd4</a></span>
+      <span>cluster bm-cluster.e2e.bos.redhat.com</span>
+      <span>MAS blueprint df782fdc</span>
+    </div>
+  </header>
+
+  <section class="panel" aria-labelledby="d0">
+    <div class="panel-head">
+      <h2 id="d0">The whole flow at a glance</h2>
+      <p>Each numbered stage gets its own detailed diagram below.</p>
+    </div>
+    <div class="legend">
+      <span class="chip a">Token A · Red Hat SSO</span>
+      <span class="chip b">Token B · Keycloak, aud openshift-mcp</span>
+    </div>
+    <div class="scroll">
+<pre class="mermaid">
+%%{init: {"themeVariables": {"fontSize": "17px"}, "sequence": {"messageFontSize": 17, "noteFontSize": 16, "actorFontSize": 17, "mirrorActors": false, "messageMargin": 20, "boxMargin": 6, "boxTextMargin": 4, "noteMargin": 6, "height": 48, "width": 170}}}%%
+sequenceDiagram
+    participant A as External agent
+    participant SSO as Red Hat SSO
+    participant MAS as MAS
+    participant ARH as Ask Red Hat
+    participant OLS as Praxis + Lightspeed
+    participant KC as Keycloak
+    participant OCP as OpenShift
+    rect rgba(31, 95, 174, 0.10)
+    A->>SSO: 1 · client credentials
+    SSO-->>A: Token A
+    end
+    rect rgba(196, 22, 28, 0.07)
+    A->>MAS: 2 · question + Token A
+    end
+    alt 2a · docs or product question
+        MAS->>ARH: question + Token A
+        ARH-->>MAS: answer
+    else 2b · live cluster question
+        MAS->>OLS: question + Token A + cluster id
+        rect rgba(46, 125, 79, 0.10)
+        OLS->>KC: 3 · swap Token A
+        KC-->>OLS: Token B
+        end
+        OLS->>OCP: 4 · MCP tool call + Token B
+        OCP-->>OLS: data allowed by RBAC
+        OLS-->>MAS: answer
+    end
+    MAS-->>A: combined answer
+</pre>
+    </div>
+  </section>
+
+  <section class="detail" aria-labelledby="s1">
+    <div class="prose">
+      <span class="eyebrow">Stage 1</span>
+      <h2 id="s1">The agent gets a Red Hat SSO token</h2>
+      <p>The UI picks the identity provider for each request with three headers. ACME then mints an agent token from a confidential Red Hat SSO client. The <code>openid</code> scope is required: Keycloak needs it later to call SSO's userinfo endpoint during the exchange.</p>
+    </div>
+    <div class="scroll">
+<pre class="mermaid">
+%%{init: {"themeVariables": {"fontSize": "17px"}, "sequence": {"messageFontSize": 17, "noteFontSize": 16, "actorFontSize": 17, "mirrorActors": false, "messageMargin": 20, "boxMargin": 6, "boxTextMargin": 4, "noteMargin": 6, "height": 48, "width": 170}}}%%
+sequenceDiagram
+    autonumber
+    actor U as User in ACME UI
+    participant A as acme-agent
+    participant LLM as LiteLLM
+    participant SSO as Red Hat SSO (stage)
+    U->>A: message/send, provider = Red Hat SSO stage
+    A->>LLM: which agent? (static API key)
+    LLM-->>A: mas_orchestrator
+    A->>SSO: POST /token, client_credentials
+    SSO-->>A: Token A (aud api.ask_red_hat)
+</pre>
+    </div>
+    <pre class="req">POST sso.stage.redhat.com/.../redhat-external/protocol/openid-connect/token
+  grant_type    = client_credentials
+  client_id     = &lt;from Vault via ExternalSecret&gt;
+  client_secret = &lt;from Vault via ExternalSecret&gt;
+  scope         = openid api.ask_red_hat
+
+UI headers: X-ACME-Auth-Provider=redhat  X-ACME-Auth-Environment=stage  X-ACME-Auth-Token-Type=agent
+Token A:    iss=sso.stage.redhat.com  aud ∋ api.ask_red_hat  sub=service-account principal</pre>
+  </section>
+
+  <section class="detail" aria-labelledby="s2">
+    <div class="prose">
+      <span class="eyebrow">Stage 2 · 2a</span>
+      <h2 id="s2">MAS validates the token and picks a specialist</h2>
+      <p>MAS accepts tokens from Red Hat SSO prod, stage and the local Keycloak. It authorizes the token's <code>sub</code> against an exact allow-list and keeps the token for the run. Both specialist nodes have an empty <code>bearer_token</code>, so MAS forwards Token A as it is. It never mints a token of its own.</p>
+    </div>
+    <div class="scroll">
+<pre class="mermaid">
+%%{init: {"themeVariables": {"fontSize": "17px"}, "sequence": {"messageFontSize": 17, "noteFontSize": 16, "actorFontSize": 17, "mirrorActors": false, "messageMargin": 20, "boxMargin": 6, "boxTextMargin": 4, "noteMargin": 6, "height": 48, "width": 170}}}%%
+sequenceDiagram
+    autonumber
+    participant A as acme-agent
+    participant MAS as MAS A2A
+    participant ORC as Orchestrator LLM
+    participant ARH as Ask Red Hat A2A
+    A->>MAS: message/send, Bearer Token A
+    MAS->>MAS: validate Token A<br/>sub in allowedPrincipals, else 403
+    MAS->>ORC: run blueprint df782fdc
+    ORC-->>MAS: ask_red_hat, investigate, or both
+    MAS->>ARH: 2a · Bearer Token A (passthrough)
+    ARH-->>MAS: docs and guidance
+    MAS-->>A: one combined answer
+</pre>
+    </div>
+    <pre class="req">MAS checks: RS256 signature (SSO JWKS, cached), iss ∈ identity.oidcIssuers,
+            aud = api.ask_red_hat, exp, sub ∈ a2a.allowedPrincipals (else 403)
+Token A is kept in RunContext.credentials. Nodes with bearer_token: "" reuse it.
+Ask Red Hat call has no X-OLS-Cluster header.</pre>
+  </section>
+
+  <section class="detail" aria-labelledby="s2b">
+    <div class="prose">
+      <span class="eyebrow">Stage 2b</span>
+      <h2 id="s2b">The question reaches OpenShift Lightspeed</h2>
+      <p>In the standalone variant Praxis only routes. It reads <code>X-OLS-Cluster</code> and forwards to that cluster's Lightspeed, so Lightspeed is the component that validates Token A. The orchestrator LLM writes the header name itself, and a misspelled header gets a 404.</p>
+    </div>
+    <div class="scroll">
+<pre class="mermaid">
+%%{init: {"themeVariables": {"fontSize": "17px"}, "sequence": {"messageFontSize": 17, "noteFontSize": 16, "actorFontSize": 17, "mirrorActors": false, "messageMargin": 20, "boxMargin": 6, "boxTextMargin": 4, "noteMargin": 6, "height": 48, "width": 170}}}%%
+sequenceDiagram
+    autonumber
+    participant MAS as MAS A2A
+    participant PX as Praxis proxy
+    participant OLS as OpenShift Lightspeed
+    MAS->>PX: Bearer Token A + X-OLS-Cluster
+    PX->>PX: route by cluster id (no JWT check)
+    PX->>OLS: forward unchanged
+    OLS->>OLS: validate Token A (iss SSO, aud api.ask_red_hat)
+    OLS->>OLS: cluster id matches me? else 403
+</pre>
+    </div>
+    <pre class="req">X-OLS-Cluster: api-bm-cluster-e2e-bos-redhat-com-6443   (unknown or misspelled → 404 at Praxis)
+Praxis: policy.enabled=false → router only
+OLS:    RS256 via SSO JWKS, iss = SSO, aud = api.ask_red_hat, exp
+        header must equal OLS's own cluster id (else 403)</pre>
+  </section>
+
+  <section class="detail" aria-labelledby="s3">
+    <div class="prose">
+      <span class="eyebrow">Stage 3</span>
+      <h2 id="s3">Lightspeed swaps Token A for a Keycloak token</h2>
+      <p>This is the RFC 8693 exchange. Lightspeed proves who it is with its SPIFFE identity and passes Token A as the subject. Keycloak checks Token A with Red Hat SSO, brokers the subject through the matching identity provider, and adds group <code>acme-agent-rca</code>. Token A goes no further than Lightspeed.</p>
+    </div>
+    <div class="scroll">
+<pre class="mermaid">
+%%{init: {"themeVariables": {"fontSize": "17px"}, "sequence": {"messageFontSize": 17, "noteFontSize": 16, "actorFontSize": 17, "mirrorActors": false, "messageMargin": 20, "boxMargin": 6, "boxTextMargin": 4, "noteMargin": 6, "height": 48, "width": 170}}}%%
+sequenceDiagram
+    autonumber
+    participant OLS as OpenShift Lightspeed
+    participant SPIRE as SPIRE / ZTWIM
+    participant KC as Keycloak (realm rca)
+    participant SSO as Red Hat SSO
+    OLS->>SPIRE: get my JWT-SVID
+    SPIRE-->>OLS: JWT-SVID
+    OLS->>KC: token-exchange: Token A + JWT-SVID
+    KC->>SSO: introspect + userinfo on Token A
+    SSO-->>KC: active
+    KC->>KC: broker user, add group acme-agent-rca
+    KC-->>OLS: Token B (aud openshift-mcp)
+</pre>
+    </div>
+    <pre class="req">POST keycloak.apps.bm-cluster.../realms/rca/protocol/openid-connect/token
+  grant_type            = urn:ietf:params:oauth:grant-type:token-exchange
+  subject_token         = Token A
+  subject_token_type    = urn:ietf:params:oauth:token-type:access_token
+  subject_issuer        = https://sso.stage.redhat.com/auth/realms/redhat-external
+  client_assertion_type = ...:client-assertion-type:jwt-spiffe
+  client_assertion      = spiffe://.../ns/a2a-lightspeed/sa/lightspeed-app-server
+  audience              = openshift-mcp
+
+Token B: iss=keycloak/realms/rca  aud=openshift-mcp  azp=lightspeed-mcp  groups=[acme-agent-rca]</pre>
+  </section>
+
+  <section class="detail" aria-labelledby="s4">
+    <div class="prose">
+      <span class="eyebrow">Stage 4</span>
+      <h2 id="s4">Token B reaches the cluster and RBAC decides</h2>
+      <p>Lightspeed's own LLM chooses which MCP tools to call. MCP requires a bearer token but doesn't validate it. It passes Token B to the API server, which trusts Keycloak through native OIDC, maps the <code>groups</code> claim, and applies RBAC.</p>
+    </div>
+    <div class="scroll">
+<pre class="mermaid">
+%%{init: {"themeVariables": {"fontSize": "17px"}, "sequence": {"messageFontSize": 17, "noteFontSize": 16, "actorFontSize": 17, "mirrorActors": false, "messageMargin": 20, "boxMargin": 6, "boxTextMargin": 4, "noteMargin": 6, "height": 48, "width": 170}}}%%
+sequenceDiagram
+    autonumber
+    participant OLS as OpenShift Lightspeed
+    participant G as Gemini on Vertex
+    participant MCP as OpenShift MCP
+    participant API as OpenShift API server
+    OLS->>G: question + tool list
+    G-->>OLS: tools to call
+    OLS->>MCP: tool call, Bearer Token B
+    MCP->>API: passthrough Token B
+    API->>API: verify, map group, apply RBAC
+    API-->>MCP: resources
+    MCP-->>OLS: tool result
+</pre>
+    </div>
+    <pre class="req">MCP:  require_oauth=true (no token → 401), skip_jwt_verification=true, passthrough
+API:  cached Keycloak JWKS, aud openshift-mcp in Authentication/cluster audiences
+      user  = keycloak:&lt;sub&gt;
+      group = keycloak:acme-agent-rca → RBAC view + cluster-monitoring-view
+Answer streams back: OLS → Praxis → MAS</pre>
+  </section>
+
+  <section class="prose" aria-labelledby="tok">
+    <h2 id="tok">What the tokens look like at each hop</h2>
+    <p>Two tokens are in play. Token A comes from Red Hat SSO and reaches MAS, Ask Red Hat, Praxis and OLS. Token B comes from the local Keycloak and is the only token MCP and the API server see.</p>
+  </section>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Claim</th><th>Token A · Red Hat SSO</th><th>Token B · Keycloak exchange</th><th>Who checks it</th></tr></thead>
+      <tbody>
+        <tr><td><code>iss</code></td><td><code>sso.stage.redhat.com/auth/realms/redhat-external</code> (or prod)</td><td><code>keycloak.apps.bm-cluster…/realms/rca</code></td><td>MAS, OLS for A · API server for B</td></tr>
+        <tr><td><code>aud</code></td><td>includes <code>api.ask_red_hat</code></td><td><code>openshift-mcp</code></td><td>Must be in <code>Authentication/cluster</code> audiences for B</td></tr>
+        <tr><td><code>sub</code></td><td>SSO service-account principal. This is the value in <code>a2a.allowedPrincipals</code>, not the client UUID.</td><td>Keycloak id of the brokered user</td><td>MAS allow-list for A · becomes <code>keycloak:&lt;sub&gt;</code> for B</td></tr>
+        <tr><td><code>azp</code></td><td>the SSO client</td><td><code>lightspeed-mcp</code></td><td>Not checked in standalone (Praxis policy is off)</td></tr>
+        <tr><td><code>groups</code></td><td>none</td><td><code>["acme-agent-rca"]</code> from the Hardcoded Group mapper</td><td>API server → <code>Group:keycloak:acme-agent-rca</code> → RBAC</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <section class="two">
+    <div class="prose">
+      <h2>Set up once, not per request</h2>
+      <ul class="plain">
+        <li>Keycloak realm <code>rca</code> has external IdPs <code>red-hat-sso-prod</code> and <code>red-hat-sso-stage</code>. Token exchange is allowed, and each IdP has <code>hardcodedGroups: [acme-agent-rca]</code>. A PostSync reconciler heals realms that were imported earlier.</li>
+        <li>The Keycloak client <code>lightspeed-mcp</code> authenticates with federated JWT using OLS's SPIFFE ID. It also has <code>standard.token.exchange.enabled</code> and an <code>openshift-mcp</code> audience mapper.</li>
+        <li>OpenShift <code>Authentication/cluster</code> uses type OIDC and trusts the Keycloak issuer for <code>openshift-mcp</code>. It applies <code>claimMappings.groups</code> with the prefix <code>keycloak:</code>.</li>
+        <li>The <code>lightspeed-mcp-rbac.yaml</code> bindings give the mapped group the built-in <code>view</code> and <code>cluster-monitoring-view</code> roles.</li>
+        <li>MAS, OLS and Praxis all read the cluster id from <code>global.olsClusters</code>.</li>
+      </ul>
+    </div>
+    <div class="prose">
+      <h2>Gaps the demo still has</h2>
+      <ul class="plain">
+        <li>The caller is the agent's service account. Nobody logs in as a human: SSO user login (auth code + PKCE) is still a TODO in ACME.</li>
+        <li>Praxis is router-only in standalone. Nothing checks <code>azp</code>, so OLS's issuer and audience check is the real gate. The reason is that the Praxis image can't reach the SSO JWKS over IPv6.</li>
+        <li>MCP Mode A (<code>require_oauth=true</code> with passthrough) is in place but has not been verified live. MCP does not validate the JWT itself.</li>
+        <li>The orchestrator LLM writes the <code>X-OLS-Cluster</code> header name itself. When it got the spelling wrong, OLS delegations were dropped with a 404. The prompt and temperature 0 reduce this. The durable fix is for MAS to inject the header itself.</li>
+        <li>No <code>act</code> claim appears in Token B. Who acted for whom is recorded in the <code>acme_audit</code> and <code>a2a_audit</code> logs, which share a <code>request_id</code>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="prose" aria-labelledby="src">
+    <h2 id="src">Where each step lives in the repo</h2>
+  </section>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Step</th><th>File</th><th>What to look at</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><a href="https://github.com/luis5tb/multicloud-gitops/blob/c6d8ffd406b0e8afe1041d2a9854cc2dc242eff4/agents/acme_agent/src/acme_agent/auth.py">agents/acme_agent/src/acme_agent/auth.py</a></td><td><code>_redhat_sso_agent_token</code>, request-scoped provider headers</td></tr>
+        <tr><td>1</td><td><a href="https://github.com/luis5tb/multicloud-gitops/blob/c6d8ffd406b0e8afe1041d2a9854cc2dc242eff4/agents/acme_agent/src/acme_agent/routing_prompt.py">agents/acme_agent/src/acme_agent/routing_prompt.py</a></td><td>ACME sends every Red Hat question to MAO</td></tr>
+        <tr><td>2</td><td><a href="https://github.com/luis5tb/multicloud-gitops/blob/c6d8ffd406b0e8afe1041d2a9854cc2dc242eff4/setup-mas-blueprint.sh">setup-mas-blueprint.sh</a></td><td>Orchestrator prompt, the Ask Red Hat and OLS <code>a2a_agent_node</code>s, the plan graph</td></tr>
+        <tr><td>2</td><td><a href="https://github.com/luis5tb/multicloud-gitops/blob/c6d8ffd406b0e8afe1041d2a9854cc2dc242eff4/variants/standalone/values-standalone.yaml">variants/standalone/values-standalone.yaml</a></td><td><code>mao-a2a</code>: <code>oidcIssuers</code>, <code>allowedPrincipals</code>, <code>blueprintId</code></td></tr>
+        <tr><td>2b</td><td><a href="https://github.com/luis5tb/multicloud-gitops/tree/c6d8ffd406b0e8afe1041d2a9854cc2dc242eff4/charts/all/praxis-proxy">charts/all/praxis-proxy</a></td><td><code>policy.enabled</code> toggle, routing by <code>X-OLS-Cluster</code></td></tr>
+        <tr><td>3</td><td><a href="https://github.com/luis5tb/multicloud-gitops/tree/c6d8ffd406b0e8afe1041d2a9854cc2dc242eff4/charts/all/openshift-lightspeed-config">charts/all/openshift-lightspeed-config</a></td><td><code>appServerPatch.a2a</code>: <code>tokenExchangeEnabled</code>, <code>exchangeSubjectIssuers</code>, <code>oidcIssuers</code></td></tr>
+        <tr><td>3</td><td><a href="https://github.com/luis5tb/lightspeed-service/blob/a2a-split/ols/app/endpoints/a2a_auth.py">lightspeed-service@a2a-split · a2a_auth.py</a></td><td><code>A2AAuthenticator</code>, <code>KeycloakTokenExchanger</code>, audit record</td></tr>
+        <tr><td>3</td><td><a href="https://github.com/luis5tb/multicloud-gitops/blob/c6d8ffd406b0e8afe1041d2a9854cc2dc242eff4/charts/all/keycloak-oidc/templates/keycloak-realm-import.yaml">charts/all/keycloak-oidc/…/keycloak-realm-import.yaml</a></td><td>Clients, external IdPs, Hardcoded Group mapper</td></tr>
+        <tr><td>3</td><td><a href="https://github.com/luis5tb/multicloud-gitops/blob/c6d8ffd406b0e8afe1041d2a9854cc2dc242eff4/charts/all/keycloak-oidc/templates/lightspeed-mcp-rbac.yaml">charts/all/keycloak-oidc/…/lightspeed-mcp-rbac.yaml</a></td><td>RBAC on <code>Group:keycloak:acme-agent-rca</code></td></tr>
+        <tr><td>all</td><td><a href="https://github.com/luis5tb/multicloud-gitops/blob/c6d8ffd406b0e8afe1041d2a9854cc2dc242eff4/agents/AUTHENTICATION.md">agents/AUTHENTICATION.md</a></td><td>Luis's detailed write-up, claim captures and troubleshooting</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>Built from the repo's code and docs at commit c6d8ffd4. Ask Red Hat validates Token A on Red Hat's side; that code is not in this repo.</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>
+(function () {
+  var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({ startOnLoad: false, theme: dark ? 'dark' : 'default', securityLevel: 'strict', fontFamily: '"Red Hat Text", system-ui, sans-serif' });
+  mermaid.run({ querySelector: 'pre.mermaid' });
+})();
+</script>
+</body>
+</html>

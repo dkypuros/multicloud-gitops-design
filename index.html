@@ -169,7 +169,7 @@ sequenceDiagram
     <div class="prose">
       <span class="eyebrow">Stage 1</span>
       <h2 id="s1">The agent gets a Red Hat SSO token</h2>
-      <p>The UI picks the identity provider for each request with three headers. ACME then mints an agent token from a confidential Red Hat SSO client. The <code>openid</code> scope is required: Keycloak needs it later to call SSO's userinfo endpoint during the exchange.</p>
+      <p>The UI picks the identity provider for each request with three headers. ACME then mints an agent token from a confidential Red Hat SSO client. The <code>openid</code> scope is required: Keycloak needs it later to call SSO's userinfo endpoint during the exchange. <a href="https://github.com/dkypuros/multicloud-gitops-design/blob/main/stage-1.md">[...more]</a></p>
     </div>
     <div class="scroll">
 <pre class="mermaid">
@@ -201,7 +201,7 @@ Token A:    iss=sso.stage.redhat.com  aud ∋ api.ask_red_hat  sub=service-accou
     <div class="prose">
       <span class="eyebrow">Stage 2 · 2a</span>
       <h2 id="s2">MAS validates the token and picks a specialist</h2>
-      <p>MAS accepts tokens from Red Hat SSO prod, stage and the local Keycloak. It authorizes the token's <code>sub</code> against an exact allow-list and keeps the token for the run. Both specialist nodes have an empty <code>bearer_token</code>, so MAS forwards Token A as it is. It never mints a token of its own.</p>
+      <p>MAS accepts tokens from Red Hat SSO prod, stage and the local Keycloak. It authorizes the token's <code>sub</code> against an exact allow-list and keeps the token for the run. Both specialist nodes have an empty <code>bearer_token</code>, so MAS forwards Token A as it is. It never mints a token of its own. <a href="https://github.com/dkypuros/multicloud-gitops-design/blob/main/stage-2.md">[...more]</a></p>
     </div>
     <div class="scroll">
 <pre class="mermaid">
@@ -231,7 +231,7 @@ Ask Red Hat call has no X-OLS-Cluster header.</pre>
     <div class="prose">
       <span class="eyebrow">Stage 2b</span>
       <h2 id="s2b">The question reaches OpenShift Lightspeed</h2>
-      <p>In the standalone variant Praxis only routes. It reads <code>X-OLS-Cluster</code> and forwards to that cluster's Lightspeed, so Lightspeed is the component that validates Token A. The orchestrator LLM writes the header name itself, and a misspelled header gets a 404.</p>
+      <p>In the standalone variant Praxis only routes. It reads <code>X-OLS-Cluster</code> and forwards to that cluster's Lightspeed, so Lightspeed is the component that validates Token A. The orchestrator LLM writes the header name itself, and a misspelled header gets a 404. <a href="https://github.com/dkypuros/multicloud-gitops-design/blob/main/stage-2b.md">[...more]</a></p>
     </div>
     <div class="scroll">
 <pre class="mermaid">
@@ -258,7 +258,7 @@ OLS:    RS256 via SSO JWKS, iss = SSO, aud = api.ask_red_hat, exp
     <div class="prose">
       <span class="eyebrow">Stage 3</span>
       <h2 id="s3">Lightspeed swaps Token A for a Keycloak token</h2>
-      <p>This is the RFC 8693 exchange. Lightspeed proves who it is with its SPIFFE identity and passes Token A as the subject. Keycloak checks Token A with Red Hat SSO, brokers the subject through the matching identity provider, and adds group <code>acme-agent-rca</code>. Token A goes no further than Lightspeed.</p>
+      <p>This is the RFC 8693 exchange. Lightspeed proves who it is with its SPIFFE identity and passes Token A as the subject. Keycloak checks Token A with Red Hat SSO, brokers the subject through the matching identity provider, and adds group <code>acme-agent-rca</code>. Token A goes no further than Lightspeed. <a href="https://github.com/dkypuros/multicloud-gitops-design/blob/main/stage-3.md">[...more]</a></p>
     </div>
     <div class="scroll">
 <pre class="mermaid">
@@ -294,7 +294,7 @@ Token B: iss=keycloak/realms/rca  aud=openshift-mcp  azp=lightspeed-mcp  groups=
     <div class="prose">
       <span class="eyebrow">Stage 4</span>
       <h2 id="s4">Token B reaches the cluster and RBAC decides</h2>
-      <p>Lightspeed's own LLM chooses which MCP tools to call. MCP requires a bearer token but doesn't validate it. It passes Token B to the API server, which trusts Keycloak through native OIDC, maps the <code>groups</code> claim, and applies RBAC.</p>
+      <p>Lightspeed's own LLM chooses which MCP tools to call. MCP requires a bearer token but doesn't validate it. It passes Token B to the API server, which trusts Keycloak through native OIDC, maps the <code>groups</code> claim, and applies RBAC. <a href="https://github.com/dkypuros/multicloud-gitops-design/blob/main/stage-4.md">[...more]</a></p>
     </div>
     <div class="scroll">
 <pre class="mermaid">
